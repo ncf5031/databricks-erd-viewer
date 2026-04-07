@@ -6,7 +6,7 @@ Supports both schema-wide and table-specific lineage queries.
 """
 
 import logging
-from utils.database import execute_query_with_columns, get_connection
+from utils.database import execute_query_with_columns, get_connection, validate_identifier
 from models.lineage import ColumnLineage, TableLineageResult
 
 logger = logging.getLogger(__name__)
@@ -14,6 +14,8 @@ logger = logging.getLogger(__name__)
 
 def get_column_lineage(user_token: str, catalog: str, schema: str) -> list[ColumnLineage]:
     """Get column-level lineage for all tables in a schema (last 30 days)."""
+    validate_identifier(catalog, "catalog")
+    validate_identifier(schema, "schema")
     sql = f"""
     SELECT DISTINCT
         source_table_full_name AS source_table,
@@ -56,6 +58,9 @@ def get_table_lineage(user_token: str, catalog: str, schema: str, table: str) ->
     Upstream = tables that feed INTO this table (this table is the target).
     Downstream = tables that this table feeds INTO (this table is the source).
     """
+    validate_identifier(catalog, "catalog")
+    validate_identifier(schema, "schema")
+    validate_identifier(table, "table")
     full_name = f"{catalog}.{schema}.{table}"
 
     # Upstream: what feeds into this table

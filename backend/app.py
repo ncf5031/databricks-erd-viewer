@@ -91,17 +91,26 @@ async def add_user_context(request: Request, call_next):
     return response
 
 
+# Handle invalid identifier names (from validate_identifier)
+@app.exception_handler(ValueError)
+async def value_error_handler(request: Request, exc: ValueError):
+    """Return 400 for invalid identifier names."""
+    return JSONResponse(
+        status_code=400,
+        content={"error": "BAD_REQUEST", "message": str(exc)},
+    )
+
+
 # Global exception handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """Handle uncaught exceptions with sanitized error response."""
-    logger.error(f"Unhandled exception: {exc}", exc_info=True)
+    logger.error(f"Unhandled exception on {request.url.path}: {exc}", exc_info=True)
     return JSONResponse(
         status_code=500,
         content={
             "error": "INTERNAL_SERVER_ERROR",
-            "message": str(exc),
-            "path": request.url.path,
+            "message": "An unexpected error occurred. Please try again.",
         },
     )
 

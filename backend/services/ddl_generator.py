@@ -5,7 +5,7 @@ Generates CREATE TABLE DDL statements from Unity Catalog metadata.
 """
 
 import logging
-from utils.database import execute_query, get_connection
+from utils.database import execute_query, get_connection, validate_identifier, quote_identifier
 
 logger = logging.getLogger(__name__)
 
@@ -16,9 +16,13 @@ def get_ddl(user_token: str, catalog: str, schema: str, table: str, conn=None) -
 
     Returns the DDL string or an error message if unavailable.
     """
+    validate_identifier(catalog, "catalog")
+    validate_identifier(schema, "schema")
+    validate_identifier(table, "table")
     full_name = f"{catalog}.{schema}.{table}"
+    fqn = f"{quote_identifier(catalog)}.{quote_identifier(schema)}.{quote_identifier(table)}"
     try:
-        rows = execute_query(f"SHOW CREATE TABLE {full_name}", user_token=user_token, conn=conn)
+        rows = execute_query(f"SHOW CREATE TABLE {fqn}", user_token=user_token, conn=conn)
         if rows:
             # SHOW CREATE TABLE returns rows that concatenate into the full DDL
             ddl_parts = [row[0] for row in rows if row]
@@ -41,6 +45,10 @@ def get_ddl_batch(user_token: str, catalog: str, schema: str, table_names: list[
     Returns:
         Combined DDL string for all requested tables
     """
+    validate_identifier(catalog, "catalog")
+    validate_identifier(schema, "schema")
+    for name in table_names:
+        validate_identifier(name, "table")
     conn = get_connection(user_token=user_token, catalog=catalog, schema=schema)
     try:
         ddl_parts = []

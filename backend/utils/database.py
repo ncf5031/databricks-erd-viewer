@@ -7,6 +7,7 @@ Ref: https://docs.databricks.com/dev-tools/databricks-apps/auth
 """
 
 import os
+import re
 import logging
 from databricks.sdk.core import Config
 from databricks import sql as dbsql
@@ -14,6 +15,44 @@ from databricks import sql as dbsql
 from config import SQL_WAREHOUSE_ID
 
 logger = logging.getLogger(__name__)
+
+# Regex for valid UC identifiers: letters, digits, underscores, hyphens, dots (for FQN parts)
+_VALID_IDENTIFIER_RE = re.compile(r"^[a-zA-Z0-9_\-]+$")
+
+
+def validate_identifier(name: str, label: str = "identifier") -> str:
+    """
+    Validate a Unity Catalog identifier (catalog, schema, or table name).
+
+    Rejects names containing characters that could enable SQL injection.
+    Valid characters: letters, digits, underscores, hyphens.
+
+    Args:
+        name: The identifier to validate
+        label: Human-readable label for error messages (e.g., "catalog", "schema")
+
+    Returns:
+        The validated name (unchanged)
+
+    Raises:
+        ValueError: If the name contains invalid characters
+    """
+    if not name or not _VALID_IDENTIFIER_RE.match(name):
+        raise ValueError(
+            f"Invalid {label} name: '{name}'. "
+            f"Names may only contain letters, digits, underscores, and hyphens."
+        )
+    return name
+
+
+def quote_identifier(name: str) -> str:
+    """
+    Safely quote a UC identifier with backticks, escaping any embedded backticks.
+
+    Should be used AFTER validate_identifier() for defense-in-depth.
+    """
+    return f"`{name.replace('`', '``')}`"
+
 
 # Warehouse HTTP path derived from warehouse ID
 _WAREHOUSE_HTTP_PATH = f"/sql/1.0/warehouses/{SQL_WAREHOUSE_ID}" if SQL_WAREHOUSE_ID else ""

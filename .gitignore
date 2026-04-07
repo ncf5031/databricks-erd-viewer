@@ -178,6 +178,7 @@ package-lock.json.local
 # ============================================================================
 backend/static/
 !backend/static/.gitkeep
+frontend/tsconfig.tsbuildinfo
 
 # ============================================================================
 # User-Specific Configuration

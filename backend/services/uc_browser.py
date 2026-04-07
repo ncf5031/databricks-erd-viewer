@@ -7,7 +7,7 @@ and only requires the 'sql' OAuth scope.
 """
 
 import logging
-from utils.database import execute_query_with_columns
+from utils.database import execute_query_with_columns, validate_identifier, quote_identifier
 from models.catalog import CatalogInfo, SchemaInfo
 from models.table import TableSummary
 
@@ -35,9 +35,10 @@ def list_catalogs(user_token: str) -> list[CatalogInfo]:
 
 def list_schemas(user_token: str, catalog_name: str) -> list[SchemaInfo]:
     """List all schemas in a catalog accessible to the current user via SQL."""
+    validate_identifier(catalog_name, "catalog")
     try:
         rows, _ = execute_query_with_columns(
-            f"SHOW SCHEMAS IN `{catalog_name}`",
+            f"SHOW SCHEMAS IN {quote_identifier(catalog_name)}",
             user_token=user_token, catalog=catalog_name,
         )
         schemas = []
@@ -60,9 +61,11 @@ def list_schemas(user_token: str, catalog_name: str) -> list[SchemaInfo]:
 
 def list_tables(user_token: str, catalog_name: str, schema_name: str, conn=None) -> list[TableSummary]:
     """List all tables in a schema accessible to the current user via SQL."""
+    validate_identifier(catalog_name, "catalog")
+    validate_identifier(schema_name, "schema")
     try:
         rows, _ = execute_query_with_columns(
-            f"SHOW TABLES IN `{catalog_name}`.`{schema_name}`",
+            f"SHOW TABLES IN {quote_identifier(catalog_name)}.{quote_identifier(schema_name)}",
             user_token=user_token, catalog=catalog_name, schema=schema_name, conn=conn,
         )
         tables = []

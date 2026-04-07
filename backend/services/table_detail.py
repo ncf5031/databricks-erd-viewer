@@ -7,7 +7,7 @@ respecting UC permissions via the 'sql' OAuth scope.
 """
 
 import logging
-from utils.database import execute_query_with_columns, get_connection
+from utils.database import execute_query_with_columns, get_connection, validate_identifier, quote_identifier
 from models.table import TableDetail, ColumnDetail
 from services.uc_browser import list_tables
 
@@ -19,6 +19,9 @@ def get_table_detail(user_token: str, catalog: str, schema: str, table: str) -> 
     Get full table details including columns, types, and constraints.
     Uses DESCRIBE TABLE (SQL) for column metadata.
     """
+    validate_identifier(catalog, "catalog")
+    validate_identifier(schema, "schema")
+    validate_identifier(table, "table")
     full_name = f"{catalog}.{schema}.{table}"
     conn = get_connection(user_token=user_token, catalog=catalog)
 
@@ -61,6 +64,8 @@ def get_tables_with_columns(user_token: str, catalog: str, schema: str) -> list[
     Get all tables in a schema with their column details.
     Uses a single connection and bulk PK/FK queries for performance.
     """
+    validate_identifier(catalog, "catalog")
+    validate_identifier(schema, "schema")
     conn = get_connection(user_token=user_token, catalog=catalog, schema=schema)
 
     try:
@@ -107,12 +112,14 @@ def get_tables_with_columns(user_token: str, catalog: str, schema: str) -> list[
 
 def _get_all_primary_keys(user_token: str, catalog: str, schema: str, conn=None) -> dict[str, set[str]]:
     """Fetch all PK columns for every table in the schema in one query."""
+    cat = quote_identifier(catalog)
+    sch = quote_identifier(schema)
     try:
         rows, _ = execute_query_with_columns(
             f"""
             SELECT tc.table_name, kcu.column_name
-            FROM `{catalog}`.information_schema.table_constraints tc
-            JOIN `{catalog}`.information_schema.key_column_usage kcu
+            FROM {cat}.information_schema.table_constraints tc
+            JOIN {cat}.information_schema.key_column_usage kcu
                 ON tc.constraint_name = kcu.constraint_name
                 AND tc.constraint_schema = kcu.constraint_schema
             WHERE tc.constraint_type = 'PRIMARY KEY'
@@ -134,12 +141,13 @@ def _get_all_primary_keys(user_token: str, catalog: str, schema: str, conn=None)
 
 def _get_all_foreign_keys(user_token: str, catalog: str, schema: str, conn=None) -> dict[str, set[str]]:
     """Fetch all FK columns for every table in the schema in one query."""
+    cat = quote_identifier(catalog)
     try:
         rows, _ = execute_query_with_columns(
             f"""
             SELECT tc.table_name, kcu.column_name
-            FROM `{catalog}`.information_schema.table_constraints tc
-            JOIN `{catalog}`.information_schema.key_column_usage kcu
+            FROM {cat}.information_schema.table_constraints tc
+            JOIN {cat}.information_schema.key_column_usage kcu
                 ON tc.constraint_name = kcu.constraint_name
                 AND tc.constraint_schema = kcu.constraint_schema
             WHERE tc.constraint_type = 'FOREIGN KEY'
@@ -166,8 +174,9 @@ def _get_all_foreign_keys(user_token: str, catalog: str, schema: str, conn=None)
 def _get_columns_via_sql(user_token: str, catalog: str, schema: str, table: str, conn=None) -> list[ColumnDetail]:
     """Get column info via DESCRIBE TABLE SQL."""
     try:
+        fqn = f"{quote_identifier(catalog)}.{quote_identifier(schema)}.{quote_identifier(table)}"
         rows, _ = execute_query_with_columns(
-            f"DESCRIBE TABLE `{catalog}`.`{schema}`.`{table}`",
+            f"DESCRIBE TABLE {fqn}",
             user_token=user_token, catalog=catalog, schema=schema, conn=conn,
         )
         columns = []
@@ -190,12 +199,13 @@ def _get_columns_via_sql(user_token: str, catalog: str, schema: str, table: str,
 
 def _get_primary_key_columns(user_token: str, catalog: str, schema: str, table: str, conn=None) -> set[str]:
     """Query information_schema for primary key columns."""
+    cat = quote_identifier(catalog)
     try:
         rows, _ = execute_query_with_columns(
             f"""
             SELECT kcu.column_name
-            FROM `{catalog}`.information_schema.table_constraints tc
-            JOIN `{catalog}`.information_schema.key_column_usage kcu
+            FROM {cat}.information_schema.table_constraints tc
+            JOIN {cat}.information_schema.key_column_usage kcu
                 ON tc.constraint_name = kcu.constraint_name
                 AND tc.constraint_schema = kcu.constraint_schema
             WHERE tc.constraint_type = 'PRIMARY KEY'
@@ -212,12 +222,13 @@ def _get_primary_key_columns(user_token: str, catalog: str, schema: str, table: 
 
 def _get_foreign_key_columns(user_token: str, catalog: str, schema: str, table: str, conn=None) -> set[str]:
     """Query information_schema for foreign key columns on this table."""
+    cat = quote_identifier(catalog)
     try:
         rows, _ = execute_query_with_columns(
             f"""
             SELECT kcu.column_name
-            FROM `{catalog}`.information_schema.table_constraints tc
-            JOIN `{catalog}`.information_schema.key_column_usage kcu
+            FROM {cat}.information_schema.table_constraints tc
+            JOIN {cat}.information_schema.key_column_usage kcu
                 ON tc.constraint_name = kcu.constraint_name
                 AND tc.constraint_schema = kcu.constraint_schema
             WHERE tc.constraint_type = 'FOREIGN KEY'
@@ -248,8 +259,9 @@ def _get_extended_metadata(user_token: str, catalog: str, schema: str, table: st
     }
 
     try:
+        fqn = f"{quote_identifier(catalog)}.{quote_identifier(schema)}.{quote_identifier(table)}"
         rows, _ = execute_query_with_columns(
-            f"DESCRIBE EXTENDED `{catalog}`.`{schema}`.`{table}`",
+            f"DESCRIBE EXTENDED {fqn}",
             user_token=user_token, catalog=catalog, schema=schema, conn=conn,
         )
 

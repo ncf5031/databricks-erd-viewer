@@ -8,7 +8,7 @@ Discovers table relationships via:
 
 import re
 import logging
-from utils.database import execute_query_with_columns
+from utils.database import execute_query_with_columns, validate_identifier, quote_identifier
 from models.relationship import Relationship, RelationshipType
 from models.table import TableDetail
 
@@ -33,6 +33,9 @@ def get_explicit_relationships(user_token: str, catalog: str, schema: str) -> li
     - referential_constraints
     - key_column_usage (source and target)
     """
+    validate_identifier(catalog, "catalog")
+    validate_identifier(schema, "schema")
+    cat = quote_identifier(catalog)
     sql = f"""
     SELECT
         tc.constraint_name,
@@ -41,17 +44,17 @@ def get_explicit_relationships(user_token: str, catalog: str, schema: str) -> li
         kcu2.table_name      AS target_table,
         kcu2.column_name     AS target_column
     FROM
-        {catalog}.information_schema.table_constraints tc
+        {cat}.information_schema.table_constraints tc
     JOIN
-        {catalog}.information_schema.referential_constraints rc
+        {cat}.information_schema.referential_constraints rc
         ON tc.constraint_name = rc.constraint_name
         AND tc.constraint_schema = rc.constraint_schema
     JOIN
-        {catalog}.information_schema.key_column_usage kcu
+        {cat}.information_schema.key_column_usage kcu
         ON tc.constraint_name = kcu.constraint_name
         AND tc.constraint_schema = kcu.constraint_schema
     JOIN
-        {catalog}.information_schema.key_column_usage kcu2
+        {cat}.information_schema.key_column_usage kcu2
         ON rc.unique_constraint_name = kcu2.constraint_name
         AND rc.unique_constraint_schema = kcu2.constraint_schema
     WHERE

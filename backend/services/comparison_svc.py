@@ -5,7 +5,7 @@ Compares tables and schemas across catalogs to detect schema drift.
 """
 
 import logging
-from utils.database import execute_query_with_columns, get_connection
+from utils.database import execute_query_with_columns, get_connection, validate_identifier, quote_identifier
 from models.comparison import (
     ColumnDiff,
     DiffStatus,
@@ -27,9 +27,13 @@ def _fetch_table_columns(
     conn=None,
 ) -> list[ColumnDetail]:
     """Fetch columns for a table."""
+    validate_identifier(catalog, "catalog")
+    validate_identifier(schema, "schema")
+    validate_identifier(table, "table")
+    fqn = f"{quote_identifier(catalog)}.{quote_identifier(schema)}.{quote_identifier(table)}"
     try:
         rows, _ = execute_query_with_columns(
-            f"DESCRIBE TABLE `{catalog}`.`{schema}`.`{table}`",
+            f"DESCRIBE TABLE {fqn}",
             user_token=user_token,
             catalog=catalog,
             schema=schema,

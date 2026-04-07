@@ -1,0 +1,26 @@
+command: ["uvicorn", "app:app"]
+
+# On-behalf-of-user authorization scopes
+# Databricks forwards the user's access token so the app operates
+# with the user's identity and UC permissions.
+# Ref: https://docs.databricks.com/dev-tools/databricks-apps/auth
+user_api_scopes:
+  - sql
+
+env:
+  # SQL Warehouse ID for executing metadata queries
+  # Resolved from the sql-warehouse resource binding in databricks.yml
+  - name: SQL_WAREHOUSE_ID
+    valueFrom: sql-warehouse
+
+  # Cache TTL in seconds (default: 300 = 5 minutes)
+  - name: CACHE_TTL_SECONDS
+    value: "300"
+
+  # Maximum tables allowed on canvas (default: 100)
+  - name: MAX_TABLES_ON_CANVAS
+    value: "100"
+
+  # Logging level (DEBUG, INFO, WARNING, ERROR)
+  - name: LOG_LEVEL
+    value: "INFO"

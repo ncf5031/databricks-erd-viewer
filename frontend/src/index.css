@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* React Flow overrides for dark mode */
+.dark .react-flow__background {
+  background-color: #000000;
+}
+
+.dark .react-flow__minimap {
+  background-color: #222;
+}
+
+.dark .react-flow__controls button {
+  background-color: #222;
+  border-color: #333;
+  color: #E2E8F0;
+}
+
+.dark .react-flow__controls button:hover {
+  background-color: #2a2940;
+}
+
+/* Scrollbar styling for dark mode */
+.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #222;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #1e1e1e;
+}

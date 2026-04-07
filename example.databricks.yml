@@ -1,0 +1,105 @@
+bundle:
+  name: ERD_VIEWER
+  databricks_cli_version: ">=0.270.0"
+
+variables:
+  warehouse_id:
+    description: SQL Warehouse ID for metadata queries
+
+sync:
+  # Force-include backend/static/ (gitignored but needed for the app)
+  include:
+    - "backend/static/**"
+    - "backend/app.yaml"
+  exclude:
+    - "CLAUDE.md"
+    - ".claude/**"
+    - "frontend/**"
+    - "docs/**"
+    - "*.md"
+    - "*.pyc"
+    - "__pycache__"
+    - ".env"
+    - ".env.example"
+    - ".pytest_cache"
+    - ".gitignore"
+    - "deploy.sh"
+    - "node_modules/**"
+    - "LICENSE"
+    - "example.databricks.yml"
+    - "backend/example.app.yaml"
+
+resources:
+  apps:
+    erd-viewer-app:
+      name: erd-viewer
+      description: "Unity Catalog ERD Viewer — interactive entity-relationship diagrams"
+      budget_policy_id: # TODO
+      source_code_path: ./backend
+      resources:
+        - name: sql-warehouse
+          sql_warehouse:
+            id: ${var.warehouse_id}
+            permission: CAN_USE
+      permissions:
+        - group_name: # TODO
+          level: CAN_USE
+
+targets:
+  # Development environment
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: # TODO
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+      profile: # TODO
+
+    variables:
+      warehouse_id:
+        default: # TODO
+
+    permissions:
+      - user_name: # TODO
+        level: CAN_MANAGE
+      
+
+  # UAT environment
+  uat:
+    mode: development
+    workspace:
+      host: # TODO
+      root_path: /Shared/.bundle/${bundle.target}/${bundle.name}
+      profile: #TODO
+
+    variables:
+      warehouse_id:
+        default: # TODO
+
+    permissions:
+      - user_name: # TODO
+        level: CAN_MANAGE
+
+  # Production environment
+  prod:
+    mode: production
+    workspace:
+      host: # TODO
+      root_path: /Shared/.bundle/prod/${bundle.name}
+
+    variables:
+      warehouse_id:
+        default: YOUR_PROD_WAREHOUSE_ID  # TODO: Update with production warehouse ID
+
+    # Option 1: Run as service principal
+    # run_as:
+    #   service_principal_name: your-service-principal-app-id
+    # Option 2: Run as designated user
+    # run_as:
+    #   user_name: prod.admin@example.com
+    # Set permissions for production access
+    # permissions:
+    #   - user_name: prod.admin@example.com
+    #     level: CAN_MANAGE
+    #   - group_name: data-team
+    #     level: CAN_USE
